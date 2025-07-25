@@ -1,24 +1,51 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Avatar } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { UserPlus } from 'lucide-react';
 import type { Participant } from '@/data/participants';
 
 interface TraderCardProps {
   participant: Participant;
   onClick?: () => void;
+  onFollowClick?: () => void;
+  isAuthenticated?: boolean;
 }
 
-const TraderCard: React.FC<TraderCardProps> = ({ participant, onClick }) => {
+const TraderCard: React.FC<TraderCardProps> = ({ 
+  participant, 
+  onClick, 
+  onFollowClick,
+  isAuthenticated = false 
+}) => {
+  const handleFollowClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
+    onFollowClick?.();
+  };
+
   return (
     <motion.div 
-      className="bg-card border border-border rounded-lg p-3 h-[120px] flex flex-col cursor-pointer hover:border-primary/50 hover:shadow-md hover:shadow-primary/20 transition-all duration-200"
+      className="bg-card border border-border rounded-lg p-3 h-[140px] flex flex-col cursor-pointer hover:border-primary/50 hover:shadow-md hover:shadow-primary/20 transition-all duration-200 relative"
       onClick={onClick}
       whileHover={{ scale: 1.02 }}
       transition={{ duration: 0.15 }}
       layout
     >
+      {/* Follow Button */}
+      <div className="absolute top-2 right-2">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={handleFollowClick}
+          className="h-6 w-6 p-0 hover:bg-primary/10"
+          title={isAuthenticated ? "Follow trader" : "Register or log in to follow"}
+        >
+          <UserPlus className="w-3 h-3" />
+        </Button>
+      </div>
+
       {/* Top row: Rank and P&L */}
-      <div className="flex justify-between items-center mb-3">
+      <div className="flex justify-between items-center mb-3 pr-8">
         <span className="text-xs font-bold text-foreground">#{participant.rank}</span>
         <div className={`font-bold text-xs px-2 py-1 rounded ${
           participant.pnlValue >= 0 

@@ -1,16 +1,14 @@
-import express, { Application, Request, Response, NextFunction } from 'express';
+import 'dotenv/config';
+import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import morgan from 'morgan';
 import compression from 'compression';
-import cookieParser from 'cookie-parser';
-import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
+import swaggerJsdoc from 'swagger-jsdoc';
 
-// Load environment variables
-dotenv.config();
-
-// Import middleware
+import { DatabaseService } from './services/database.service';
+import { RedisService } from './services/redis.service';
+import { Logger } from './utils/logger';
 import { errorHandler } from './middleware/error.middleware';
 import { rateLimitMiddleware } from './middleware/rate-limit.middleware';
 
@@ -20,185 +18,223 @@ import tournamentRoutes from './routes/tournament.routes';
 import tradingRoutes from './routes/trading.routes';
 import adminRoutes from './routes/admin.routes';
 import webhookRoutes from './routes/webhook.routes';
+import zimtraRoutes from './routes/zimtra.routes';
+import chatRoutes from './routes/chat.routes';
+import dashboardRoutes from './routes/dashboard.routes';
 
-// Import services
-import { DatabaseService } from './services/database.service';
-import { RedisService } from './services/redis.service';
-import { Logger } from './utils/logger';
-import { EnvironmentValidator } from './utils/env-validator';
-import { StartupValidator } from './utils/startup-validator';
-import { swaggerSpec } from './config/swagger.config';
+const logger = new Logger('App');
 
-class DaytradeServer {
-  private app: Application;
-  private port: number;
-  private logger: Logger;
+// Validate required environment variables
+const requiredEnvVars = [
+  'NODE_ENV',
+  'PORT',
+  'SUPABASE_URL',
+  'SUPABASE_SERVICE_ROLE_KEY',
+  'REDIS_URL',
+  'JWT_SECRET',
+  'ZIMTRA_API_KEY',
+  'ZIMTRA_TRADE_API_URL',
+  'BREVO_API_KEY',
+  'GETSTREAM_API_KEY',
+  'GETSTREAM_API_SECRET',
+  'GETSTREAM_APP_ID'
+];
 
-  constructor() {
-    this.app = express();
-    this.port = parseInt(process.env.PORT || '3001', 10);
-    this.logger = new Logger('DaytradeServer');
-    
-    this.validateEnvironment();
-    this.initializeMiddleware();
-    this.initializeRoutes();
-    this.initializeErrorHandling();
-  }
-
-  private validateEnvironment(): void {
-    try {
-      EnvironmentValidator.validateRequired();
-      EnvironmentValidator.validateFormat();
-      this.logger.info('Environment validation passed');
-    } catch (error) {
-      this.logger.error('Environment validation failed:', error);
-      process.exit(1);
-    }
-  }
-
-  private initializeMiddleware(): void {
-    // Security middleware
-    this.app.use(helmet({
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: ["'self'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          scriptSrc: ["'self'"],
-          imgSrc: ["'self'", "data:", "https:"],
-        },
-      },
-    }));
-    
-    // CORS configuration
-    this.app.use(cors({
-      origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-    }));
-
-    // Compression and parsing
-    this.app.use(compression());
-    this.app.use(express.json({ limit: '10mb' }));
-    this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-    this.app.use(cookieParser());
-
-    // Logging
-    if (process.env.ENABLE_REQUEST_LOGGING === 'true') {
-      this.app.use(morgan('combined'));
-    }
-
-    // Rate limiting
-    this.app.use(rateLimitMiddleware);
-  }
-
-  private initializeRoutes(): void {
-    // API Documentation
-    this.app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
-    // Health check endpoint
-    this.app.get('/health', (req: Request, res: Response) => {
-      res.status(200).json({
-        status: 'healthy',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        environment: process.env.NODE_ENV,
-        version: '1.0.0'
-      });
-    });
-
-    // API routes
-    this.app.use('/api/auth', authRoutes);
-    this.app.use('/api/tournaments', tournamentRoutes);
-    this.app.use('/api/trading', tradingRoutes);
-    this.app.use('/api/admin', adminRoutes);
-    this.app.use('/api/webhooks', webhookRoutes);
-
-    // Root endpoint
-    this.app.get('/', (req: Request, res: Response) => {
-      res.status(200).json({
-        message: 'Dayrade Trading Tournament Platform API',
-        version: '1.0.0',
-        documentation: '/api-docs',
-        health: '/health'
-      });
-    });
-
-    // 404 handler
-    this.app.use('*', (req: Request, res: Response) => {
-      res.status(404).json({
-        success: false,
-        message: 'API endpoint not found',
-        path: req.originalUrl
-      });
-    });
-  }
-
-  private initializeErrorHandling(): void {
-    this.app.use(errorHandler);
-  }
-
-  public async start(): Promise<void> {
-    try {
-      this.logger.info('Starting Dayrade API server...');
-
-      // Validate startup requirements
-      await StartupValidator.validateDatabaseConnection();
-      this.logger.info('Database connection validated');
-
-      await StartupValidator.validateRedisConnection();
-      this.logger.info('Redis connection validated');
-
-      // Test external services (non-blocking)
-      StartupValidator.validateExternalServices().catch(error => {
-        this.logger.warn('Some external services may not be available:', error.message);
-      });
-
-      // Start server
-      this.app.listen(this.port, () => {
-        this.logger.info(`🚀 Dayrade API server running on port ${this.port}`);
-        this.logger.info(`📖 Environment: ${process.env.NODE_ENV}`);
-        this.logger.info(`🏥 Health check: http://localhost:${this.port}/health`);
-        this.logger.info(`📚 API Documentation: http://localhost:${this.port}/api-docs`);
-      });
-
-    } catch (error) {
-      this.logger.error('Failed to start server:', error);
-      process.exit(1);
-    }
-  }
-
-  public getApp(): Application {
-    return this.app;
+for (const envVar of requiredEnvVars) {
+  if (!process.env[envVar]) {
+    logger.error(`Missing required environment variable: ${envVar}`);
+    process.exit(1);
   }
 }
 
-// Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-  process.exit(1);
+const app = express();
+
+// Swagger configuration
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'Dayrade Trading Tournament API',
+      version: '1.0.0',
+      description: 'API for the Dayrade Trading Tournament Platform',
+    },
+    servers: [
+      {
+        url: process.env.NODE_ENV === 'production' 
+          ? 'https://api.dayrade.com' 
+          : `http://localhost:${process.env.PORT || 3001}`,
+        description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server',
+      },
+    ],
+  },
+  apis: ['./src/routes/*.ts', './src/models/*.ts'],
+};
+
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+
+// Middleware
+app.use(helmet());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:8080',
+  credentials: true,
+}));
+app.use(compression());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
+
+// Rate limiting
+app.use(rateLimitMiddleware);
+
+// API Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Health check endpoint
+app.get('/health', async (req, res) => {
+  try {
+    let dbStatus = 'not initialized';
+    try {
+      const dbService = DatabaseService.getInstance();
+      await dbService.testConnection();
+      dbStatus = 'connected';
+    } catch (error) {
+      dbStatus = 'not available';
+    }
+    
+    let redisStatus = 'not available';
+    try {
+      const redisService = RedisService.getInstance();
+      await redisService.testConnection();
+      redisStatus = 'connected';
+    } catch (error) {
+      redisStatus = 'not available';
+    }
+    
+    res.status(200).json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      services: {
+        database: dbStatus,
+        redis: redisStatus
+      }
+    });
+  } catch (error) {
+    logger.error('Health check failed:', error);
+    res.status(503).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
 });
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  process.exit(1);
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/tournaments', tournamentRoutes);
+app.use('/api/trading', tradingRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/webhooks', webhookRoutes);
+app.use('/api/zimtra', zimtraRoutes);
+app.use('/api/chat', chatRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Dayrade Trading Tournament API',
+    version: '1.0.0',
+    documentation: '/api-docs',
+    health: '/health'
+  });
 });
+
+// Error handling middleware (must be last)
+app.use(errorHandler);
+
+// Initialize services and start server
+async function startServer() {
+  try {
+    logger.info('Starting Dayrade Trading Tournament API...');
+    
+    // Initialize database service
+    await DatabaseService.initialize();
+    logger.info('Database service initialized');
+    
+    // Initialize Redis service (optional for development)
+    try {
+      await RedisService.initialize();
+      logger.info('Redis service initialized');
+    } catch (error) {
+      logger.warn('Redis service not available, continuing without Redis:', error);
+    }
+    
+    const port = process.env.PORT || 3001;
+    
+    app.listen(port, () => {
+      logger.info(`Server running on port ${port}`);
+      logger.info(`Environment: ${process.env.NODE_ENV}`);
+      logger.info(`API Documentation: http://localhost:${port}/api-docs`);
+    });
+    
+  } catch (error) {
+    logger.error('Failed to start server:', error);
+    process.exit(1);
+  }
+}
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
-  process.exit(0);
+process.on('SIGTERM', async () => {
+  logger.info('SIGTERM received, shutting down gracefully...');
+  
+  try {
+    try {
+      const dbService = DatabaseService.getInstance();
+      await dbService.disconnect();
+    } catch (error) {
+      logger.warn('Database service not initialized or already disconnected');
+    }
+    
+    try {
+      const redisService = RedisService.getInstance();
+      await redisService.disconnect();
+    } catch (error) {
+      logger.warn('Redis service not initialized or already disconnected');
+    }
+    
+    logger.info('Services disconnected successfully');
+    process.exit(0);
+  } catch (error) {
+    logger.error('Error during shutdown:', error);
+    process.exit(1);
+  }
 });
 
-process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully');
-  process.exit(0);
+process.on('SIGINT', async () => {
+  logger.info('SIGINT received, shutting down gracefully...');
+  
+  try {
+    try {
+      const dbService = DatabaseService.getInstance();
+      await dbService.disconnect();
+    } catch (error) {
+      logger.warn('Database service not initialized or already disconnected');
+    }
+    
+    try {
+      const redisService = RedisService.getInstance();
+      await redisService.disconnect();
+    } catch (error) {
+      logger.warn('Redis service not initialized or already disconnected');
+    }
+    
+    logger.info('Services disconnected successfully');
+    process.exit(0);
+  } catch (error) {
+    logger.error('Error during shutdown:', error);
+    process.exit(1);
+  }
 });
 
-// Start server if this file is run directly
-if (require.main === module) {
-  const server = new DaytradeServer();
-  server.start();
-}
+// Start the server
+startServer();
 
-export default DaytradeServer;
+export default app;

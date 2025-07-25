@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, Sun, Moon, User, ChevronDown, Clock, Trophy, TrendingUp, MessageSquare, X } from 'lucide-react';
+import { Bell, Sun, Moon, User, ChevronDown, Clock, Trophy, TrendingUp, MessageSquare, X, Shield, Settings, LogOut } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Avatar } from '@/components/ui/avatar';
@@ -13,12 +13,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import AnimatedLeaderboard from '@/components/AnimatedLeaderboard';
+import { AuthModal } from '@/components/auth/AuthModal';
+import { KycModal } from '@/components/auth/KycModal';
+import { UserStateIndicator } from '@/components/auth/UserStateIndicator';
+import { useAuth } from '@/hooks/useAuth';
 
 interface TopBarProps {
   onThemeToggle?: () => void;
   isDarkMode?: boolean;
   sidebarExpanded?: boolean;
-  isAuthenticated?: boolean;
   onTraderSelect?: (trader: any) => void;
 }
 
@@ -74,14 +77,46 @@ const TopBar: React.FC<TopBarProps> = ({
   onThemeToggle, 
   isDarkMode = false, 
   sidebarExpanded = false,
-  isAuthenticated = false,
   onTraderSelect
 }) => {
   const navigate = useNavigate();
+  const { user, isAuthenticated, logout } = useAuth();
   const [notifications, setNotifications] = useState(mockNotifications);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
+  const [kycModalOpen, setKycModalOpen] = useState(false);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  // Get user state based on authentication and KYC status
+  const getUserState = () => {
+    if (!isAuthenticated) return 'viewer';
+    if (user?.kycStatus === 'approved') return 'kyc_verified';
+    return 'registered';
+  };
+
+  const handleLogin = () => {
+    setAuthModalMode('login');
+    setAuthModalOpen(true);
+  };
+
+  const handleRegister = () => {
+    setAuthModalMode('register');
+    setAuthModalOpen(true);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
+  const handleKycVerification = () => {
+    setKycModalOpen(true);
+  };
 
   const markAsRead = (notificationId: string) => {
     setNotifications(prev => 
@@ -246,44 +281,22 @@ const TopBar: React.FC<TopBarProps> = ({
         {/* Theme Toggle */}
         <motion.button
           onClick={onThemeToggle}
-          className="relative w-12 h-6 rounded-full bg-muted border border-border transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-ring hover:bg-muted/80"
+          className="relative w-10 h-10 rounded-lg bg-background border border-border hover:bg-accent transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring flex items-center justify-center"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          {/* Toggle Track */}
           <motion.div
-            className="absolute inset-0 rounded-full bg-gradient-to-r from-orange-200 to-blue-200 dark:from-blue-900 dark:to-purple-900"
             animate={{ 
-              opacity: isDarkMode ? 0.8 : 1 
+              rotate: isDarkMode ? 0 : 180,
+              scale: isDarkMode ? 1 : 1
             }}
             transition={{ duration: 0.3 }}
-          />
-          
-          {/* Toggle Slider */}
-          <motion.div
-            className="absolute top-0.5 w-5 h-5 bg-background rounded-full shadow-md border border-border flex items-center justify-center"
-            animate={{ 
-              x: isDarkMode ? 24 : 2,
-            }}
-            transition={{ 
-              type: "spring",
-              stiffness: 500,
-              damping: 30
-            }}
           >
-            <motion.div
-              animate={{ 
-                rotate: isDarkMode ? 0 : 180,
-                scale: isDarkMode ? 1 : 0.8
-              }}
-              transition={{ duration: 0.3 }}
-            >
-              {isDarkMode ? (
-                <Moon className="w-3 h-3 text-blue-600" />
-              ) : (
-                <Sun className="w-3 h-3 text-orange-500" />
-              )}
-            </motion.div>
+            {isDarkMode ? (
+              <Moon className="w-5 h-5 text-foreground" />
+            ) : (
+              <Sun className="w-5 h-5 text-foreground" />
+            )}
           </motion.div>
         </motion.button>
 
@@ -297,25 +310,73 @@ const TopBar: React.FC<TopBarProps> = ({
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <Avatar className="w-8 h-8">
-                  <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 rounded-full flex items-center justify-center">
-                    <User className="w-4 h-4 text-primary" />
+                <div className="flex items-center space-x-2">
+                  <Avatar className="w-8 h-8">
+                    <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 rounded-full flex items-center justify-center">
+                      <User className="w-4 h-4 text-primary" />
+                    </div>
+                  </Avatar>
+                  <div className="hidden sm:block">
+                    <UserStateIndicator
+                      userState={getUserState()}
+                      kycStatus={user?.kycStatus}
+                      showText={false}
+                    />
                   </div>
-                </Avatar>
+                </div>
                 <ChevronDown className="w-3 h-3 text-muted-foreground" />
               </motion.button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem>
+            <DropdownMenuContent align="end" className="w-64">
+              <div className="p-3 border-b">
+                <div className="flex items-center space-x-3">
+                  <Avatar className="w-10 h-10">
+                    <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 rounded-full flex items-center justify-center">
+                      <User className="w-5 h-5 text-primary" />
+                    </div>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">
+                      {user?.firstName && user?.lastName 
+                        ? `${user.firstName} ${user.lastName}`
+                        : user?.email
+                      }
+                    </p>
+                    <p className="text-sm text-muted-foreground truncate">
+                      {user?.email}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <UserStateIndicator
+                    userState={getUserState()}
+                    kycStatus={user?.kycStatus}
+                    className="justify-start"
+                  />
+                </div>
+              </div>
+              
+              <DropdownMenuItem onClick={() => navigate('/profile')}>
                 <User className="w-4 h-4 mr-2" />
                 Profile
               </DropdownMenuItem>
+              
+              {getUserState() === 'registered' && user?.kycStatus !== 'approved' && (
+                <DropdownMenuItem onClick={handleKycVerification}>
+                  <Shield className="w-4 h-4 mr-2" />
+                  Complete KYC Verification
+                </DropdownMenuItem>
+              )}
+              
               <DropdownMenuItem onClick={() => navigate('/settings')}>
-                <Bell className="w-4 h-4 mr-2" />
+                <Settings className="w-4 h-4 mr-2" />
                 Settings
               </DropdownMenuItem>
+              
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-loss">
+              
+              <DropdownMenuItem onClick={handleLogout} className="text-loss">
+                <LogOut className="w-4 h-4 mr-2" />
                 Logout
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -327,18 +388,32 @@ const TopBar: React.FC<TopBarProps> = ({
               variant="ghost" 
               size="sm" 
               className="text-foreground hover:bg-accent"
+              onClick={handleLogin}
             >
               Login
             </Button>
             <Button 
               size="sm" 
               className="bg-profit hover:bg-profit/90 text-background"
+              onClick={handleRegister}
             >
               Register
             </Button>
           </div>
         )}
       </div>
+
+      {/* Authentication Modals */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        initialMode={authModalMode}
+      />
+      
+      <KycModal
+        isOpen={kycModalOpen}
+        onClose={() => setKycModalOpen(false)}
+      />
     </motion.div>
   );
 };

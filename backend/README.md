@@ -1,145 +1,393 @@
-# Dayrade Trading Tournament Platform - Backend API
+# DayTrade Tournament Backend
 
-## Overview
-
-This is the backend API for the Dayrade Trading Tournament Platform, built with Node.js, Express.js, and TypeScript. The backend provides comprehensive tournament management, real-time trading data integration, user authentication, and external service integrations.
+A comprehensive Node.js/TypeScript backend system for managing trading tournaments, participant tracking, leaderboards, and performance analytics.
 
 ## Features
 
-- **User Authentication & Authorization** - JWT-based auth system
-- **Tournament Management** - Create and manage trading tournaments
-- **Real-time Trading Data** - Integration with Zimtra API for live trading metrics
-- **Payment Processing** - TicketSource integration for tournament registration
-- **Email Notifications** - Brevo email service integration
-- **Real-time Chat** - GetStream.io integration for tournament chat
-- **Admin Dashboard** - Comprehensive admin functionality
-- **WebSocket Support** - Real-time updates for leaderboards and chat
+### Core Tournament Management
+- **Tournament Lifecycle**: Create, manage, and monitor trading tournaments
+- **Participant Registration**: User registration and management system
+- **Status Management**: Automated tournament status transitions
+- **Division Support**: Multiple skill-based tournament divisions (Beginner, Intermediate, Advanced, Professional)
+
+### Performance Tracking
+- **Real-time Metrics**: Track trading performance in real-time
+- **Performance Analytics**: Calculate Sharpe ratio, win rates, profit factors
+- **Historical Data**: Maintain performance history and snapshots
+- **Portfolio Tracking**: Monitor portfolio values and returns
+
+### Leaderboard System
+- **Dynamic Rankings**: Real-time participant ranking updates
+- **Performance Metrics**: Comprehensive performance-based scoring
+- **Historical Rankings**: Track ranking changes over time
+- **Top Performers**: Identify and showcase top traders
+
+### Notification System
+- **Event-driven Notifications**: Automated notifications for key events
+- **Multi-channel Support**: Email, in-app, and push notifications
+- **Customizable Templates**: Flexible notification templates
+- **User Preferences**: Configurable notification settings
+
+### Security & Compliance
+- **JWT Authentication**: Secure token-based authentication
+- **Role-based Access**: Admin and user role management
+- **Audit Logging**: Comprehensive action tracking
+- **Rate Limiting**: API protection against abuse (100 requests/minute)
+- **Input Validation**: Robust data validation and sanitization
+
+### Configuration Management
+- **Dynamic Configuration**: Runtime configuration updates
+- **Environment-specific Settings**: Development, staging, production configs
+- **Feature Flags**: Toggle features without deployment
+- **Caching**: Redis-based configuration caching
 
 ## Technology Stack
 
 - **Runtime**: Node.js 18+
+- **Language**: TypeScript 5+
 - **Framework**: Express.js
-- **Language**: TypeScript
-- **Database**: PostgreSQL with Supabase
-- **Cache**: Redis
+- **Database**: PostgreSQL with Prisma ORM
+- **Caching**: Redis
 - **Authentication**: JWT
-- **Documentation**: Swagger/OpenAPI
-
-## External Integrations
-
-- **Zimtra API** - Trading data and account management
-- **TicketSource** - Payment processing and ticketing
-- **GetStream.io** - Real-time chat functionality
-- **Brevo** - Transactional email service
-
-## Quick Start
-
-### Prerequisites
-
-- Node.js 18+ and npm 9+
-- PostgreSQL database (or Supabase account)
-- Redis server
-- API keys for external services
-
-### Installation
-
-1. **Install dependencies**:
-   ```bash
-   npm install
-   ```
-
-2. **Environment setup**:
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
-
-3. **Validate environment**:
-   ```bash
-   npm run validate:env
-   ```
-
-4. **Start development server**:
-   ```bash
-   npm run dev
-   ```
-
-The server will start on `http://localhost:3001`
-
-### Available Scripts
-
-- `npm run dev` - Start development server with hot reload
-- `npm run build` - Build for production
-- `npm start` - Start production server
-- `npm run validate:env` - Validate environment variables
-- `npm test` - Run tests
-- `npm run lint` - Run ESLint
-
-## API Documentation
-
-Once the server is running, visit:
-- **API Documentation**: http://localhost:3001/api-docs
-- **Health Check**: http://localhost:3001/health
+- **Validation**: Custom validation middleware
+- **Logging**: Winston logger
+- **Testing**: Jest
+- **Documentation**: OpenAPI/Swagger
 
 ## Project Structure
 
 ```
-src/
-├── controllers/     # Route handlers and business logic
-├── middleware/      # Express middleware functions
-├── routes/          # API route definitions
-├── services/        # External service integrations
-├── models/          # Database models and schemas
-├── utils/           # Utility functions and helpers
-├── types/           # TypeScript type definitions
-├── jobs/            # Background job processors
-├── config/          # Configuration files
-└── app.ts           # Main application entry point
+backend/
+├── src/
+│   ├── controllers/          # Request handlers
+│   ├── services/            # Business logic layer
+│   │   ├── tournament.service.ts
+│   │   ├── leaderboard.service.ts
+│   │   ├── notification.service.ts
+│   │   ├── trading-performance.service.ts
+│   │   ├── audit.service.ts
+│   │   └── config.service.ts
+│   ├── repositories/        # Data access layer
+│   ├── middleware/          # Express middleware
+│   │   └── tournament.middleware.ts
+│   ├── routes/             # API route definitions
+│   │   └── tournament.routes.ts
+│   ├── utils/              # Utility functions
+│   ├── types/              # TypeScript type definitions
+│   └── app.ts              # Application entry point
+├── prisma/
+│   ├── schema.prisma       # Database schema
+│   └── migrations/         # Database migrations
+├── tests/                  # Test files
+├── docs/                   # Documentation
+│   └── api-documentation.md
+├── package.json
+├── tsconfig.json
+└── README.md
 ```
 
-## Environment Variables
+## Installation
 
-See `.env.example` for all required environment variables. Key variables include:
+### Prerequisites
 
-- `DATABASE_URL` - PostgreSQL connection string
-- `JWT_SECRET` - JWT signing secret (min 32 chars)
-- `ZIMTRA_API_KEY` - Zimtra API credentials
-- `TICKETSOURCE_API_KEY` - TicketSource API credentials
-- `GETSTREAM_API_KEY` - GetStream.io credentials
-- `BREVO_API_KEY` - Brevo email service credentials
+- Node.js 18 or higher
+- PostgreSQL 14 or higher
+- Redis 6 or higher
+- npm or yarn package manager
 
-## Development Status
+### Setup
 
-This backend is being built following a 14-task implementation plan:
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd dayrade-backend
+   ```
 
-- ✅ **Task 01**: Project Setup and Configuration
-- 🔄 **Task 02**: Database Schema Implementation
-- ⏳ **Task 03**: Authentication System
-- ⏳ **Task 04**: Zimtra API Integration
-- ⏳ **Task 05**: TicketSource Integration
-- ⏳ **Task 06**: Brevo Email System
-- ⏳ **Task 07**: GetStream Chat Integration
-- ⏳ **Task 08**: API Endpoints Implementation
-- ⏳ **Task 09**: Polling System Implementation
-- ⏳ **Task 10**: Webhook Handlers
-- ⏳ **Task 11**: Admin Dashboard Backend
-- ⏳ **Task 12**: Monitoring and Logging
-- ⏳ **Task 13**: Deployment Configuration
-- ⏳ **Task 14**: Testing and Validation
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Environment Configuration**
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Configure the following environment variables:
+   ```env
+   # Database
+   DATABASE_URL="postgresql://username:password@localhost:5432/dayrade"
+   
+   # Redis
+   REDIS_URL="redis://localhost:6379"
+   
+   # JWT
+   JWT_SECRET="your-secret-key"
+   JWT_EXPIRES_IN="24h"
+   
+   # Server
+   PORT=3001
+   NODE_ENV="development"
+   
+   # External Services
+   EMAIL_SERVICE_URL="your-email-service"
+   NOTIFICATION_SERVICE_URL="your-notification-service"
+   ```
+
+4. **Database Setup**
+   ```bash
+   # Generate Prisma client
+   npx prisma generate
+   
+   # Run migrations
+   npx prisma migrate deploy
+   
+   # Seed database (optional)
+   npx prisma db seed
+   ```
+
+5. **Start the application**
+   ```bash
+   # Development
+   npm run dev
+   
+   # Production
+   npm run build
+   npm start
+   ```
+
+## API Documentation
+
+Comprehensive API documentation is available at `/docs/api-documentation.md`.
+
+### Quick Start Examples
+
+1. **Create a Tournament**
+   ```bash
+   curl -X POST http://localhost:3001/api/tournaments \
+     -H "Authorization: Bearer <token>" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "name": "Weekly Trading Challenge",
+       "startDate": "2024-01-15T09:00:00Z",
+       "endDate": "2024-01-22T17:00:00Z",
+       "division": "INTERMEDIATE",
+       "slug": "weekly-challenge-001",
+       "registrationOpenDate": "2024-01-01T00:00:00Z",
+       "registrationCloseDate": "2024-01-14T23:59:59Z",
+       "tradingSymbols": ["AAPL", "GOOGL", "MSFT"]
+     }'
+   ```
+
+2. **Register for Tournament**
+   ```bash
+   curl -X POST http://localhost:3001/api/tournaments/{id}/register \
+     -H "Authorization: Bearer <token>" \
+     -H "Content-Type: application/json" \
+     -d '{"zimtraAccountId": "account123"}'
+   ```
+
+3. **Get Leaderboard**
+   ```bash
+   curl -X GET http://localhost:3001/api/tournaments/{id}/leaderboard \
+     -H "Authorization: Bearer <token>"
+   ```
+
+## Services Overview
+
+### Tournament Service
+Manages tournament lifecycle, participant registration, and status transitions.
+
+**Key Methods:**
+- `createTournament(data)` - Create new tournament
+- `registerParticipant(tournamentId, userId)` - Register user
+- `startTournament(id)` - Start tournament
+- `endTournament(id)` - End tournament
+
+### Leaderboard Service
+Handles participant rankings and leaderboard generation.
+
+**Key Methods:**
+- `getTournamentLeaderboard(tournamentId)` - Get current rankings
+- `updateParticipantRanking(tournamentId)` - Recalculate rankings
+- `getParticipantRank(participantId)` - Get individual rank
+
+### Trading Performance Service
+Tracks and analyzes trading performance metrics.
+
+**Key Methods:**
+- `recordPerformance(data)` - Record performance data
+- `getPerformanceSnapshot(tournamentId, participantId)` - Get current metrics
+- `calculateMetrics(trades)` - Calculate performance metrics
+
+### Notification Service
+Manages user notifications and communication.
+
+**Key Methods:**
+- `createNotification(data)` - Create notification
+- `sendTournamentNotification(type, tournamentId)` - Send tournament updates
+- `getNotifications(filters)` - Retrieve user notifications
+
+### Audit Service
+Provides comprehensive audit logging and tracking.
+
+**Key Methods:**
+- `logAction(userId, action, details)` - Log user action
+- `getAuditLogs(filters)` - Retrieve audit logs
+- `logTournamentAction(userId, action, tournamentId)` - Log tournament action
+
+### Config Service
+Manages system configuration and settings.
+
+**Key Methods:**
+- `getConfig(key)` - Get configuration value
+- `setConfig(key, value)` - Set configuration value
+- `getAllConfigs()` - Get all configurations
+
+## Development
+
+### Scripts
+
+```bash
+# Development server with hot reload
+npm run dev
+
+# Build for production
+npm run build
+
+# Run tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Lint code
+npm run lint
+
+# Format code
+npm run format
+
+# Database operations
+npm run db:migrate
+npm run db:seed
+npm run db:reset
+```
+
+### Code Style
+
+- **TypeScript**: Strict mode enabled
+- **ESLint**: Airbnb configuration
+- **Prettier**: Code formatting
+- **Husky**: Pre-commit hooks
+
+## Database Schema
+
+### Core Entities
+
+- **Tournament**: Tournament details and configuration
+- **TournamentParticipant**: User participation in tournaments
+- **TradingPerformance**: Performance metrics and history
+- **User**: User account information
+- **Notification**: User notifications
+- **AuditLog**: System audit trail
+- **Configuration**: System configuration
+
+### Tournament Status Values
+
+- `DRAFT` - Tournament created but not yet open for registration
+- `REGISTRATION_OPEN` - Registration is open
+- `REGISTRATION_CLOSED` - Registration closed, tournament not yet started
+- `ACTIVE` - Tournament is currently running
+- `COMPLETED` - Tournament has ended
+- `CANCELLED` - Tournament was cancelled
+
+### Division Values
+
+- `BEGINNER` - Entry level traders
+- `INTERMEDIATE` - Experienced traders
+- `ADVANCED` - Expert traders
+- `PROFESSIONAL` - Professional traders
 
 ## Security
 
-- All API endpoints use HTTPS in production
-- JWT tokens for authentication
-- Rate limiting on all endpoints
-- Input validation and sanitization
-- CORS configuration
-- Helmet.js security headers
+### Authentication & Authorization
 
-## Support
+- **JWT Tokens**: Stateless authentication
+- **Role-based Access**: Admin and user roles
+- **Token Expiration**: Configurable token lifetime
+- **Rate Limiting**: 100 requests per minute per IP
 
-For development questions or issues, refer to the comprehensive documentation package included with this project.
+### Data Protection
+
+- **Input Validation**: Comprehensive request validation
+- **SQL Injection Prevention**: Parameterized queries via Prisma
+- **XSS Protection**: Input sanitization
+- **Audit Logging**: All actions logged with user context
+
+## Deployment
+
+### Health Checks
+
+The application provides health check endpoints:
+
+- `GET /api/tournaments/health` - API health status
+- `GET /health` - Application health status
+
+### Environment Variables
+
+Production environment requires:
+
+- `DATABASE_URL` - PostgreSQL connection string
+- `REDIS_URL` - Redis connection string
+- `JWT_SECRET` - JWT signing secret
+- `NODE_ENV=production`
+
+## API Endpoints Summary
+
+### Tournament Management
+- `POST /tournaments` - Create tournament (Admin)
+- `GET /tournaments/:id` - Get tournament details
+- `PUT /tournaments/:id` - Update tournament (Admin)
+- `DELETE /tournaments/:id` - Delete tournament (Admin)
+- `POST /tournaments/:id/start` - Start tournament (Admin)
+- `POST /tournaments/:id/end` - End tournament (Admin)
+
+### Participant Management
+- `POST /tournaments/:id/register` - Register for tournament
+- `GET /tournaments/:id/participants` - Get participants
+
+### Leaderboard & Performance
+- `GET /tournaments/:id/leaderboard` - Get leaderboard
+- `POST /tournaments/:id/update-rankings` - Update rankings (Admin)
+- `POST /performance` - Record performance data
+- `GET /performance/participant/:id` - Get performance snapshot
+
+### Notifications
+- `GET /notifications` - Get user notifications
+- `POST /notifications/:id/read` - Mark as read
+- `GET /notifications/unread-count/:userId` - Get unread count
+
+### Configuration & Audit (Admin Only)
+- `GET /config/:key` - Get configuration
+- `GET /config` - Get all configurations
+- `GET /audit` - Get audit logs
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-MIT License - see LICENSE file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Support
+
+For support and questions:
+
+- **Documentation**: `/docs/api-documentation.md`
+- **Issues**: GitHub Issues
+- **Email**: support@daytradeapp.com

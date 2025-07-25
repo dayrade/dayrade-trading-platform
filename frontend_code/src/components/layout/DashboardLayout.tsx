@@ -16,6 +16,7 @@ interface DashboardLayoutProps {
   onTraderSelect?: (trader: any) => void;
   onThemeToggle?: () => void;
   isDarkMode?: boolean;
+  onAuthModalOpen?: () => void;
 }
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = React.memo(({
@@ -25,7 +26,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = React.memo(({
   isAuthenticated = false,
   onTraderSelect,
   onThemeToggle,
-  isDarkMode = false
+  isDarkMode = false,
+  onAuthModalOpen
 }) => {
   // Commentary and volume controls
   const { currentMessage } = useCommentaryRotation(COMMENTARY_MESSAGES);
@@ -39,7 +41,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = React.memo(({
       {/* Top Bar */}
       <TopBar 
         sidebarExpanded={sidebarExpanded} 
-        isAuthenticated={isAuthenticated}
         onTraderSelect={onTraderSelect}
         onThemeToggle={onThemeToggle}
         isDarkMode={isDarkMode}
@@ -67,7 +68,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = React.memo(({
         <ChatPanel 
           isExpanded={sidebarExpanded}
           onSendMessage={(message) => console.log('Chat message sent:', message)}
-          onRegisterClick={() => console.log('Register for chat clicked')}
+          onRegisterClick={onAuthModalOpen}
         />
       </div>
 

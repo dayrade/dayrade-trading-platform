@@ -12,6 +12,7 @@ import TournamentCalendar from "./pages/TournamentCalendar";
 import Settings from "./pages/Settings";
 import Winners from "./pages/Winners";
 import FAQ from "./pages/FAQ";
+import AdminDashboard from "./pages/AdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ const App = () => {
           <Route path="/winners" element={<Winners />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/faq" element={<FAQ />} />
+          <Route path="/admin" element={<AdminDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

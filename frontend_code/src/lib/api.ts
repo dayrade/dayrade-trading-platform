@@ -107,7 +107,7 @@ export class WebSocketManager {
   connect(endpoint: string): void {
     // Placeholder: Establish WebSocket connection for real-time data
     try {
-      this.ws = new WebSocket(`ws://localhost:3001${endpoint}`);
+      this.ws = new WebSocket(`ws://localhost:3002${endpoint}`);
       
       this.ws.onopen = () => {
         console.log('WebSocket connected');
