@@ -13,34 +13,35 @@ import Settings from "./pages/Settings";
 import Winners from "./pages/Winners";
 import FAQ from "./pages/FAQ";
 import AdminDashboard from "./pages/AdminDashboard";
+import Calendar from "./pages/Calendar";
 
 const queryClient = new QueryClient();
 
-const App = () => {
-  console.log('APP IS RENDERING');
+function App() {
   return (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/participants" element={<Participants />} />
-          <Route path="/economic" element={<EconomicCalendar />} />
-          <Route path="/compare" element={<CompareTraders />} />
-          <Route path="/calendar" element={<TournamentCalendar />} />
-          <Route path="/winners" element={<Winners />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/faq" element={<FAQ />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <div className="min-h-screen bg-background">
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/participants" element={<Participants />} />
+              <Route path="/economic" element={<EconomicCalendar />} />
+              <Route path="/compare" element={<CompareTraders />} />
+              <Route path="/calendar" element={<TournamentCalendar />} />
+              <Route path="/winners" element={<Winners />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/faq" element={<FAQ />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </div>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
-};
+}
 
 export default App;
