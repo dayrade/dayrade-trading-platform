@@ -209,3 +209,4 @@ Thumbs.db
 
 # Bun
 bun.lockb
+/generated/prisma

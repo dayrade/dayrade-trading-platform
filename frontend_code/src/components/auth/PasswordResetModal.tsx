@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { Mail, Loader2, CheckCircle, ArrowLeft, Lock, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { z } from 'zod';
@@ -25,7 +26,6 @@ const emailSchema = z.object({
 });
 
 const resetPasswordSchema = z.object({
-  token: z.string().min(1, 'Reset token is required'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -39,7 +39,6 @@ export const PasswordResetModal: React.FC<PasswordResetModalProps> = ({
 }) => {
   const [step, setStep] = useState<ResetStep>('request');
   const [email, setEmail] = useState('');
-  const [token, setToken] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -47,11 +46,11 @@ export const PasswordResetModal: React.FC<PasswordResetModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
+  const { resetPassword, updatePassword } = useAuth();
 
   const handleClose = () => {
     setStep('request');
     setEmail('');
-    setToken('');
     setPassword('');
     setConfirmPassword('');
     setErrors({});
@@ -74,27 +73,19 @@ export const PasswordResetModal: React.FC<PasswordResetModalProps> = ({
 
     setIsLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/forgot-password`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
+      const { error } = await resetPassword(email);
+      
+      if (error) {
+        toast({
+          title: 'Request failed',
+          description: error.message || 'Could not send reset email. Please try again.',
+          variant: 'destructive',
+        });
+      } else {
         setStep('code-sent');
         toast({
           title: 'Reset email sent!',
           description: 'Check your email for password reset instructions.',
-        });
-      } else {
-        toast({
-          title: 'Request failed',
-          description: data.message || 'Could not send reset email. Please try again.',
-          variant: 'destructive',
         });
       }
     } catch (error) {
@@ -113,7 +104,7 @@ export const PasswordResetModal: React.FC<PasswordResetModalProps> = ({
     setErrors({});
     
     try {
-      resetPasswordSchema.parse({ token, password, confirmPassword });
+      resetPasswordSchema.parse({ password, confirmPassword });
     } catch (error) {
       if (error instanceof z.ZodError) {
         const fieldErrors: Record<string, string> = {};
@@ -129,30 +120,19 @@ export const PasswordResetModal: React.FC<PasswordResetModalProps> = ({
 
     setIsLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/reset-password`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          token,
-          newPassword: password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
+      const { error } = await updatePassword(password);
+      
+      if (error) {
+        toast({
+          title: 'Reset failed',
+          description: error.message || 'Could not reset password. Please try again.',
+          variant: 'destructive',
+        });
+      } else {
         setStep('success');
         toast({
           title: 'Password reset successful!',
           description: 'Your password has been updated. You can now sign in.',
-        });
-      } else {
-        toast({
-          title: 'Reset failed',
-          description: data.message || 'Could not reset password. Please try again.',
-          variant: 'destructive',
         });
       }
     } catch (error) {
@@ -232,32 +212,11 @@ export const PasswordResetModal: React.FC<PasswordResetModalProps> = ({
           We've sent password reset instructions to <strong>{email}</strong>
         </p>
         <p className="text-sm text-muted-foreground">
-          Click the link in the email to reset your password, or enter the reset token below.
+          Click the link in the email to reset your password.
         </p>
       </div>
 
       <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="reset-token">Reset Token (Optional)</Label>
-          <Input
-            id="reset-token"
-            placeholder="Enter reset token from email"
-            value={token}
-            onChange={(e) => setToken(e.target.value)}
-          />
-          <p className="text-xs text-muted-foreground">
-            If you have the reset token, you can enter it here to proceed directly.
-          </p>
-        </div>
-
-        <Button
-          onClick={() => setStep('reset-password')}
-          className="w-full"
-          disabled={!token.trim()}
-        >
-          Continue with Token
-        </Button>
-
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -297,20 +256,6 @@ export const PasswordResetModal: React.FC<PasswordResetModalProps> = ({
       </div>
 
       <form onSubmit={handleResetPassword} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="reset-token-input">Reset Token</Label>
-          <Input
-            id="reset-token-input"
-            placeholder="Enter reset token"
-            value={token}
-            onChange={(e) => setToken(e.target.value)}
-            disabled={isLoading}
-          />
-          {errors.token && (
-            <p className="text-sm text-destructive">{errors.token}</p>
-          )}
-        </div>
-
         <div className="space-y-2">
           <Label htmlFor="new-password">New Password</Label>
           <div className="relative">

@@ -21,6 +21,7 @@ import webhookRoutes from './routes/webhook.routes';
 import zimtraRoutes from './routes/zimtra.routes';
 import chatRoutes from './routes/chat.routes';
 import dashboardRoutes from './routes/dashboard.routes';
+import emailRoutes from './routes/email.routes';
 
 const logger = new Logger('App');
 
@@ -136,6 +137,7 @@ app.use('/api/webhooks', webhookRoutes);
 app.use('/api/zimtra', zimtraRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/email', emailRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {

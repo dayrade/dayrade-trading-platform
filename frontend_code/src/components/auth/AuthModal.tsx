@@ -12,7 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, Mail, Lock, User, Loader2, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -26,14 +26,11 @@ const loginSchema = z.object({
 });
 
 const registerSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain uppercase, lowercase, and number'),
+  firstName: z.string().min(2, 'First name must be at least 2 characters'),
+  lastName: z.string().min(2, 'Last name must be at least 2 characters'),
+  email: z.string().email('Please enter a valid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
   confirmPassword: z.string(),
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
-  zimtraUsername: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -59,7 +56,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [showEmailVerification, setShowEmailVerification] = useState(false);
   const [showPasswordReset, setShowPasswordReset] = useState(false);
   const [userEmail, setUserEmail] = useState('');
-  const { login, register, isLoggingIn, isRegistering, loginError, registerError } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const { signIn, signUp, loading } = useAuth();
   const { toast } = useToast();
 
   const loginForm = useForm<LoginFormData>({
@@ -75,20 +73,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     defaultValues: {
       email: '',
       password: '',
-      confirmPassword: '',
       firstName: '',
       lastName: '',
-      zimtraUsername: '',
+      confirmPassword: '',
     },
   });
 
   const handleLogin = async (data: LoginFormData) => {
     try {
-      const loginData = {
-        email: data.email,
-        password: data.password,
-      };
-      await login(loginData);
+      setIsLoading(true);
+      const { error } = await signIn(data.email, data.password);
+      
+      if (error) {
+        throw error;
+      }
+      
       toast({
         title: 'Welcome back!',
         description: 'You have successfully logged in.',
@@ -100,19 +99,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         description: error.message || 'Please check your credentials and try again.',
         variant: 'destructive',
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleRegister = async (data: RegisterFormData) => {
     try {
-      const registerData = {
-        email: data.email,
-        password: data.password,
+      setIsLoading(true);
+      const { error } = await signUp(data.email, data.password, {
         firstName: data.firstName,
         lastName: data.lastName,
-        zimtraUsername: data.zimtraUsername,
-      };
-      await register(registerData);
+      });
+      
+      if (error) {
+        throw error;
+      }
       
       // Store email and show verification modal
       setUserEmail(data.email);
@@ -128,6 +130,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         description: error.message || 'Please try again.',
         variant: 'destructive',
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -204,14 +208,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           )}
         </div>
 
-        {loginError && (
-          <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-            {loginError.message}
-          </div>
-        )}
+        {/* Error handling is now done via toast notifications */}
 
-        <Button type="submit" className="w-full" disabled={isLoggingIn}>
-          {isLoggingIn ? (
+        <Button type="submit" className="w-full" disabled={isLoading || loading}>
+          {isLoading || loading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Signing in...
@@ -346,26 +346,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           )}
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="register-zimtraUsername">Zimtra Username (Optional)</Label>
-          <Input
-            id="register-zimtraUsername"
-            placeholder="Your Zimtra trading username"
-            {...registerForm.register('zimtraUsername')}
-          />
-          <p className="text-xs text-muted-foreground">
-            If you already have a Zimtra account, enter your username to link it.
-          </p>
-        </div>
+        {/* Error handling is now done via toast notifications */}
 
-        {registerError && (
-          <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-            {registerError.message}
-          </div>
-        )}
-
-        <Button type="submit" className="w-full" disabled={isRegistering}>
-          {isRegistering ? (
+        <Button type="submit" className="w-full" disabled={isLoading || loading}>
+          {isLoading || loading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Creating account...
