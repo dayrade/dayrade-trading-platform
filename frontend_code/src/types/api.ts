@@ -29,7 +29,7 @@ export interface RegisterRequest {
   password: string;
   firstName: string;
   lastName: string;
-  zimtraUsername?: string;
+  username?: string;
 }
 
 export interface AuthResponse {

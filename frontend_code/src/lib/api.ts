@@ -22,12 +22,12 @@ export class ApiClient {
   }
 
   private async getAuthHeaders(): Promise<Record<string, string>> {
-    // Placeholder: Get auth token from Supabase session
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.access_token) {
+    // Get JWT token from localStorage (set by auth service)
+    const token = localStorage.getItem('dayrade_access_token');
+    if (token) {
       return {
         ...this.defaultHeaders,
-        'Authorization': `Bearer ${session.access_token}`,
+        'Authorization': `Bearer ${token}`,
       };
     }
     return this.defaultHeaders;

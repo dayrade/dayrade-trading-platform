@@ -16,7 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, Mail, Lock, User, Loader2, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { EmailVerificationModal } from './EmailVerificationModal';
+
 import { PasswordResetModal } from './PasswordResetModal';
 
 // Form schemas
@@ -54,6 +54,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   initialMode = 'login'
 }) => {
   const [mode, setMode] = useState<'login' | 'register' | 'verify-email'>(initialMode);
+  
+  // Reset mode when modal opens with new initialMode
+  React.useEffect(() => {
+    if (isOpen) {
+      setMode(initialMode);
+    }
+  }, [isOpen, initialMode]);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showEmailVerification, setShowEmailVerification] = useState(false);
@@ -110,17 +117,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         password: data.password,
         firstName: data.firstName,
         lastName: data.lastName,
-        zimtraUsername: data.zimtraUsername,
+        username: data.zimtraUsername,
       };
       await register(registerData);
       
       // Store email and show verification modal
       setUserEmail(data.email);
-      setShowEmailVerification(true);
+      setMode('verify-email');
       
       toast({
-        title: 'Registration successful!',
-        description: 'Please check your email for a verification code.',
+        title: 'Invitation sent!',
+        description: 'Please check your email for an invitation to set your password.',
       });
     } catch (error: any) {
       toast({
@@ -139,20 +146,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     onClose();
   };
 
-  const handleEmailVerificationSuccess = () => {
-    setShowEmailVerification(false);
-    setUserEmail('');
-    toast({
-      title: 'Welcome to Dayrade!',
-      description: 'Your account has been verified. You can now access all features.',
-    });
-    onClose();
-  };
 
-  const handleEmailVerificationClose = () => {
-    setShowEmailVerification(false);
-    setUserEmail('');
-  };
 
   const renderLoginForm = () => (
     <motion.div
@@ -403,7 +397,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       <div className="space-y-2">
         <h3 className="text-lg font-semibold">Check your email</h3>
         <p className="text-muted-foreground">
-          We've sent a verification link to your email address. Please click the link to verify your account.
+          We've sent an invitation to your email address. Please click the link to set your password and activate your account.
         </p>
       </div>
 
@@ -430,7 +424,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <DialogTitle className="text-center">
               {mode === 'login' && 'Welcome back'}
               {mode === 'register' && 'Create your account'}
-              {mode === 'verify-email' && 'Account created'}
+              {mode === 'verify-email' && 'Invitation sent'}
             </DialogTitle>
           </DialogHeader>
 
@@ -451,12 +445,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         </DialogContent>
       </Dialog>
 
-      <EmailVerificationModal
-        isOpen={showEmailVerification}
-        onClose={handleEmailVerificationClose}
-        email={userEmail}
-        onVerificationSuccess={handleEmailVerificationSuccess}
-      />
+
 
       <PasswordResetModal
         isOpen={showPasswordReset}
