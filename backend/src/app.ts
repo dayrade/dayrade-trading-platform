@@ -30,8 +30,12 @@ const requiredEnvVars = [
   'PORT',
   'SUPABASE_URL',
   'SUPABASE_SERVICE_ROLE_KEY',
+  'JWT_SECRET'
+];
+
+// Optional environment variables (for development)
+const optionalEnvVars = [
   'REDIS_URL',
-  'JWT_SECRET',
   'ZIMTRA_API_KEY',
   'ZIMTRA_TRADE_API_URL',
   'BREVO_API_KEY',
@@ -44,6 +48,13 @@ for (const envVar of requiredEnvVars) {
   if (!process.env[envVar]) {
     logger.error(`Missing required environment variable: ${envVar}`);
     process.exit(1);
+  }
+}
+
+// Warn about missing optional environment variables
+for (const envVar of optionalEnvVars) {
+  if (!process.env[envVar] || process.env[envVar] === 'placeholder_api_key' || process.env[envVar] === 'placeholder_api_secret' || process.env[envVar] === 'placeholder_app_id') {
+    logger.warn(`Optional environment variable not configured: ${envVar}`);
   }
 }
 
@@ -170,7 +181,7 @@ async function startServer() {
     const port = process.env.PORT || 3001;
     
     app.listen(port, () => {
-      logger.info(`Server running on port ${port}`);
+      logger.info(`🚀 Server running on port ${port}`);
       logger.info(`Environment: ${process.env.NODE_ENV}`);
       logger.info(`API Documentation: http://localhost:${port}/api-docs`);
     });

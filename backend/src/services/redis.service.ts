@@ -12,7 +12,8 @@ export class RedisService {
     const redisUrl = process.env.REDIS_URL;
     
     if (!redisUrl) {
-      throw new Error('REDIS_URL environment variable is required');
+      this.logger.warn('REDIS_URL environment variable not provided, Redis service will not be available');
+      throw new Error('Redis URL not configured');
     }
 
     this.client = new Redis(redisUrl, {

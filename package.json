@@ -1,0 +1,49 @@
+{
+  "name": "dayrade-trading-platform",
+  "version": "1.0.0",
+  "description": "Dayrade Trading Tournament Platform - Full Stack Application",
+  "main": "deploy.js",
+  "scripts": {
+    "deploy": "node deploy.js",
+    "deploy:backend": "node deploy.js --backend-only",
+    "deploy:frontend": "node deploy.js --frontend-only",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend_code && npm run dev",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "install:all": "npm install && cd backend && npm install && cd ../frontend_code && npm install",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend_code && npm run build",
+    "build": "npm run build:backend && npm run build:frontend",
+    "lint:backend": "cd backend && npm run lint",
+    "lint:frontend": "cd frontend_code && npm run lint",
+    "lint": "npm run lint:backend && npm run lint:frontend",
+    "test:backend": "cd backend && npm test",
+    "test": "npm run test:backend"
+  },
+  "keywords": [
+    "trading",
+    "tournament",
+    "platform",
+    "react",
+    "express",
+    "typescript",
+    "vercel"
+  ],
+  "author": "Dayrade Platform Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "your-repository-url"
+  },
+  "workspaces": [
+    "backend",
+    "frontend_code"
+  ]
+}

@@ -42,9 +42,12 @@ export interface RegisterRequest {
 export class AuthService {
   private static logger = new Logger('AuthService');
   private static brevoService = new BrevoService();
+  
+  // Define allowed roles for the system
+  private static readonly allowedRoles = ['user', 'moderator', 'admin', 'super_admin'];
 
   /**
-   * Register a new user account
+   * Register a new user account (self-registration with email confirmation)
    */
   static async register(request: RegisterRequest): Promise<{ success: boolean; message: string; userId?: string }> {
     try {
@@ -55,15 +58,69 @@ export class AuthService {
         return { success: false, message: 'Invalid email format' };
       }
 
-      // Check if user already exists
-      const { data: existingUser } = await db
-        .from('users')
-        .select('id')
-        .eq('email', request.email.toLowerCase())
-        .single();
+      // Validate password strength
+      const passwordValidation = this.validatePassword(request.password);
+      if (!passwordValidation.isValid) {
+        return { success: false, message: passwordValidation.message };
+      }
 
-      if (existingUser) {
-        return { success: false, message: 'User already exists with this email' };
+      // Use Supabase signUp for user self-registration
+      const { data: authData, error: authError } = await db.auth.signUp({
+        email: request.email.toLowerCase(),
+        password: request.password,
+        options: {
+          data: {
+            username: request.username,
+            first_name: request.firstName,
+            last_name: request.lastName,
+            country: request.country,
+            timezone: request.timezone || 'UTC'
+          },
+          emailRedirectTo: `${process.env.FRONTEND_URL || 'http://localhost:8081'}/auth/verify-email`
+        }
+      });
+
+      if (authError) {
+        this.logger.error('Supabase registration error:', {
+          message: authError.message,
+          status: authError.status,
+          details: authError
+        });
+        if (authError.message.includes('already registered') || authError.message.includes('already been registered')) {
+          return { success: false, message: 'User already exists with this email' };
+        }
+        return { success: false, message: `Registration failed: ${authError.message}` };
+      }
+
+      if (!authData.user) {
+        return { success: false, message: 'Registration failed. Please try again.' };
+      }
+
+      const supabaseUser = authData.user;
+
+      this.logger.info(`User registered successfully: ${request.email}`);
+
+      return {
+        success: true,
+        message: 'Registration successful! Please check your email and click the confirmation link to verify your account.',
+        userId: supabaseUser.id
+      };
+
+    } catch (error) {
+      this.logger.error('Registration error:', error);
+      return { success: false, message: 'Registration failed. Please try again.' };
+    }
+  }
+  /**
+   * Register a new user account by admin (admin-initiated registration)
+   */
+  static async registerByAdmin(request: RegisterRequest): Promise<{ success: boolean; message: string; userId?: string }> {
+    try {
+      const db = DatabaseService.getInstance().getClient();
+
+      // Validate email format
+      if (!this.isValidEmail(request.email)) {
+        return { success: false, message: 'Invalid email format' };
       }
 
       // Validate password strength
@@ -72,48 +129,44 @@ export class AuthService {
         return { success: false, message: passwordValidation.message };
       }
 
-      // Generate username if not provided
-      const username = request.username || await this.generateUsername(request.firstName, request.lastName);
-
-      // Hash password
-      const passwordHash = await bcrypt.hash(request.password, 12);
-
-      // Generate email verification token
-      const verificationToken = crypto.randomBytes(32).toString('hex');
-
-      // Create user account
-      const { data: user, error } = await db
-        .from('users')
-        .insert({
-          email: request.email.toLowerCase(),
-          password_hash: passwordHash,
+      // Use Supabase Admin API for user registration
+      const { data: authData, error: authError } = await db.auth.admin.createUser({
+        email: request.email.toLowerCase(),
+        password: request.password,
+        user_metadata: {
+          username: request.username,
           first_name: request.firstName,
           last_name: request.lastName,
-          username,
-          country: request.country || null,
-          timezone: request.timezone || 'UTC',
-          email_verified: false,
-          is_active: true,
-          is_suspended: false,
-          role: 'USER'
-        })
-        .select()
-        .single();
+          country: request.country,
+          timezone: request.timezone || 'UTC'
+        },
+        email_confirm: false
+      });
 
-      if (error) {
-        this.logger.error('User creation error:', error);
+      if (authError) {
+        this.logger.error('Supabase registration error:', {
+          message: authError.message,
+          status: authError.status,
+          details: authError
+        });
+        if (authError.message.includes('already registered')) {
+          return { success: false, message: 'User already exists with this email' };
+        }
+        return { success: false, message: `Registration failed: ${authError.message}` };
+      }
+
+      if (!authData.user) {
         return { success: false, message: 'Registration failed. Please try again.' };
       }
 
-      // Send verification email
-      await this.sendVerificationEmail(request.email, request.firstName, verificationToken);
+      const supabaseUser = authData.user;
 
       this.logger.info(`User registered successfully: ${request.email}`);
 
       return {
         success: true,
         message: 'Registration successful. Please check your email to verify your account.',
-        userId: user.id
+        userId: supabaseUser.id
       };
 
     } catch (error) {
@@ -121,7 +174,6 @@ export class AuthService {
       return { success: false, message: 'Registration failed. Please try again.' };
     }
   }
-
   /**
    * Get user profile by ID
    */
@@ -129,27 +181,10 @@ export class AuthService {
     try {
       const db = DatabaseService.getInstance().getClient();
 
-      const { data: user, error } = await db
-        .from('users')
-        .select(`
-          id,
-          email,
-          username,
-          first_name,
-          last_name,
-          avatar_url,
-          country,
-          timezone,
-          role,
-          email_verified,
-          is_active,
-          created_at,
-          last_login_at
-        `)
-        .eq('id', userId)
-        .single();
+      // Get user from Supabase Auth
+      const { data: { user }, error } = await db.auth.getUser();
 
-      if (error || !user) {
+      if (error || !user || user.id !== userId) {
         return { success: false, message: 'User not found' };
       }
 
@@ -159,17 +194,17 @@ export class AuthService {
         user: {
           id: user.id,
           email: user.email,
-          username: user.username,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          avatarUrl: user.avatar_url,
-          country: user.country,
-          timezone: user.timezone,
-          role: user.role,
-          emailVerified: user.email_verified,
-          isActive: user.is_active,
+          username: user.user_metadata?.username || '',
+          firstName: user.user_metadata?.first_name || '',
+          lastName: user.user_metadata?.last_name || '',
+          avatarUrl: user.user_metadata?.avatar_url || null,
+          country: user.user_metadata?.country || null,
+          timezone: user.user_metadata?.timezone || null,
+          role: this.getDefaultRole(),
+          emailVerified: user.email_confirmed_at !== null,
+          isActive: true,
           createdAt: user.created_at,
-          lastLoginAt: user.last_login_at
+          lastLoginAt: user.last_sign_in_at
         }
       };
 
@@ -186,54 +221,55 @@ export class AuthService {
     try {
       const db = DatabaseService.getInstance().getClient();
 
-      // Get user by email
-      const { data: user, error } = await db
-        .from('users')
-        .select('*')
-        .eq('email', request.email.toLowerCase())
-        .single();
+      // Use Supabase Auth for authentication
+      const { data: authData, error: authError } = await db.auth.signInWithPassword({
+        email: request.email.toLowerCase(),
+        password: request.password
+      });
 
-      if (error || !user) {
+      if (authError || !authData.user) {
+        this.logger.error('Supabase auth error details:', {
+          error: authError,
+          message: authError?.message,
+          status: authError?.status,
+          code: authError?.code,
+          email: request.email.toLowerCase()
+        });
         return { success: false, message: 'Invalid email or password' };
       }
 
-      // Check if account is active
-      if (!user.is_active) {
-        return { success: false, message: 'Account is deactivated. Please contact support.' };
-      }
+      const supabaseUser = authData.user;
 
-      if (user.is_suspended) {
-        return { success: false, message: 'Account is suspended. Please contact support.' };
-      }
+      // Get role from user metadata or use default
+      const userRole = supabaseUser.user_metadata?.role || this.getDefaultRole();
 
-      // Verify password
-      const isPasswordValid = await bcrypt.compare(request.password, user.password_hash);
-      if (!isPasswordValid) {
-        return { success: false, message: 'Invalid email or password' };
-      }
-
-      // Generate tokens
-      const tokens = await this.generateTokens(user);
-
-      // Create session record
-      await this.createSession(user.id, tokens.refreshToken, request);
-
-      // Update last login
-      await db
-        .from('users')
-        .update({ last_login_at: new Date().toISOString() })
-        .eq('id', user.id);
-
+      // Create a user payload from Supabase user data
       const userPayload: UserPayload = {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        isVerified: user.email_verified,
-        userState: this.getUserState(user),
-        kycStatus: user.kyc_status || 'pending'
+        id: supabaseUser.id,
+        email: supabaseUser.email!,
+        role: userRole,
+        isVerified: supabaseUser.email_confirmed_at !== null,
+        userState: 'registered',
+        kycStatus: 'pending'
       };
 
-      this.logger.info(`User logged in successfully: ${user.email}`);
+      // Generate custom JWT tokens for our application
+      const tokens = await this.generateTokens({
+        id: supabaseUser.id,
+        email: supabaseUser.email!,
+        role: userRole
+      });
+
+      // Create session record (optional, for tracking)
+      try {
+        await this.createSession(supabaseUser.id, tokens.refreshToken, request);
+      } catch (sessionError) {
+        // Session creation might fail if user_sessions table doesn't exist
+        // This is non-critical for basic auth functionality
+        this.logger.warn('Session creation failed:', sessionError);
+      }
+
+      this.logger.info(`User logged in successfully: ${supabaseUser.email}`);
 
       return {
         success: true,
@@ -341,7 +377,7 @@ export class AuthService {
     const payload = {
       userId: user.id,
       email: user.email,
-      role: user.role
+      role: user.role || 'admin'
     };
 
     const accessToken = jwt.sign(payload, process.env.JWT_SECRET!, {
@@ -767,6 +803,61 @@ export class AuthService {
       this.logger.info(`Verification email sent to ${email}`);
     } catch (error) {
       this.logger.error('Failed to send verification email:', error);
+    }
+  }
+
+  /**
+   * Validate if a role is allowed in the system
+   */
+  static isValidRole(role: string): boolean {
+    return this.allowedRoles.includes(role);
+  }
+
+  /**
+   * Get all allowed roles
+   */
+  static getAllowedRoles(): string[] {
+    return [...this.allowedRoles];
+  }
+
+  /**
+   * Get default role for new users
+   */
+  static getDefaultRole(): string {
+    return 'user'; // Default role for new registrations
+  }
+
+  /**
+   * Assign role to user (with validation)
+   */
+  static async assignRole(userId: string, role: string): Promise<{ success: boolean; message: string }> {
+    try {
+      if (!this.isValidRole(role)) {
+        return {
+          success: false,
+          message: `Invalid role. Allowed roles are: ${this.allowedRoles.join(', ')}`
+        };
+      }
+
+      const db = DatabaseService.getInstance().getClient();
+      
+      // Update user role in database
+      const { error } = await db
+        .from('users')
+        .update({ role })
+        .eq('id', userId);
+
+      if (error) {
+        this.logger.error('Role assignment error:', error);
+        return { success: false, message: 'Failed to assign role' };
+      }
+
+      this.logger.info(`Role '${role}' assigned to user ${userId}`);
+      return { success: true, message: 'Role assigned successfully' };
+
+    } catch (error) {
+      this.logger.error('Role assignment error:', error);
+      return { success: false, message: 'Failed to assign role' };
     }
   }
 }

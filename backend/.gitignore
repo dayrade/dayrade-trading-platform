@@ -113,3 +113,4 @@ dump.rdb
 # Backup files
 *.backup
 *.bak
+.vercel

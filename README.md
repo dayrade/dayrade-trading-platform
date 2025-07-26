@@ -1,101 +1,149 @@
 # Dayrade Trading Tournament Platform
 
-A comprehensive trading competition platform with real-time market data, tournament management, and social features.
+A comprehensive trading tournament platform built with modern web technologies, ready for deployment on Vercel.
 
-## 🚀 Project Overview
+## 🚀 Quick Deploy to Vercel
 
-Dayrade is a modern trading tournament platform that allows users to participate in trading competitions using real market data. The platform features real-time market updates, social interactions, tournament management, and comprehensive analytics.
+### Option 1: Automated Deployment
 
-## 🏗️ Architecture
+```bash
+# Install dependencies
+npm run install:all
 
-This is a full-stack application with:
+# Deploy both frontend and backend
+npm run deploy
 
-- **Backend**: Node.js with Express.js and TypeScript
-- **Frontend**: React with TypeScript and Vite
-- **Database**: PostgreSQL with Prisma ORM
-- **Real-time Features**: WebSocket connections and polling
-- **External APIs**: Zimtra for market data, Brevo for emails, GetStream for chat
+# Or deploy individually
+npm run deploy:backend
+npm run deploy:frontend
+```
+
+### Option 2: Manual Deployment
+
+See [VERCEL_DEPLOYMENT_GUIDE.md](VERCEL_DEPLOYMENT_GUIDE.md) for detailed instructions.
 
 ## 📁 Project Structure
 
 ```
-dayrade_complete_documentation_package/
-├── backend/                    # Node.js/Express backend
-│   ├── src/
-│   │   ├── app.ts             # Main application entry
-│   │   ├── config/            # Configuration files
-│   │   ├── middleware/        # Express middleware
-│   │   ├── routes/            # API route definitions
-│   │   ├── services/          # Business logic services
-│   │   └── utils/             # Utility functions
-│   ├── package.json
-│   └── tsconfig.json
-├── frontend_code/              # React frontend
-│   ├── src/
-│   │   ├── components/        # React components
-│   │   ├── pages/             # Page components
-│   │   ├── services/          # API services
-│   │   ├── types/             # TypeScript types
-│   │   └── utils/             # Utility functions
-│   ├── package.json
-│   └── vite.config.ts
-├── assets/                     # Static assets and logos
-└── *.md                       # Documentation files
+dayrade-trading-platform/
+├── backend/                 # Express.js API server
+│   ├── api/                # Vercel serverless functions
+│   ├── src/                # Source code
+│   ├── vercel.json         # Vercel configuration
+│   └── .env.example        # Environment variables template
+├── frontend_code/          # React frontend application
+│   ├── src/                # Source code
+│   ├── vercel.json         # Vercel configuration
+│   ├── .env.example        # Environment variables template
+│   └── .env.production     # Production environment variables
+├── assets/                 # Shared assets and resources
+├── deploy.js               # Automated deployment script
+├── package.json            # Root package.json with scripts
+└── VERCEL_DEPLOYMENT_GUIDE.md # Deployment instructions
 ```
 
-## 🛠️ Development Setup
+## 🛠️ Local Development
 
 ### Prerequisites
 
-- Node.js (v18 or higher)
-- npm or yarn
-- PostgreSQL database
-- Redis (for caching and sessions)
+- Node.js 18+ and npm 9+
+- PostgreSQL database (or Supabase)
+- Redis (optional, for caching)
+
+### Quick Start
+
+```bash
+# Install all dependencies
+npm run install:all
+
+# Start both backend and frontend
+npm run dev
+
+# Or start individually
+npm run dev:backend
+npm run dev:frontend
+```
 
 ### Backend Setup
 
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Copy environment variables:
-   ```bash
-   cp .env.example .env
-   ```
-
-4. Configure your `.env` file with the required values
-
-5. Start the development server:
-   ```bash
-   npm run dev
-   ```
-
-The backend server will start on `http://localhost:3001`
+```bash
+cd backend
+npm install
+cp .env.example .env
+# Edit .env with your configuration
+npm run dev
+```
 
 ### Frontend Setup
 
-1. Navigate to the frontend directory:
-   ```bash
-   cd frontend_code
-   ```
+```bash
+cd frontend_code
+npm install
+cp .env.example .env
+# Edit .env with your configuration
+npm run dev
+```
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+## ✨ Features
 
-3. Start the development server:
-   ```bash
-   npm run dev
-   ```
+- 🔐 User authentication and authorization
+- 🏆 Trading tournament management
+- 📈 Real-time market data integration
+- 💬 Live chat and notifications
+- 👨‍💼 Admin dashboard
+- 📧 Email notifications
+- 📱 Responsive design
+- ☁️ Cloud-ready deployment
 
-The frontend will start on `http://localhost:5173`
+## 🔧 Technology Stack
+
+### Backend
+- Express.js with TypeScript
+- Supabase/PostgreSQL database
+- Redis for caching
+- JWT authentication
+- Socket.io for real-time features
+- Vercel serverless functions
+
+### Frontend
+- React 18 with TypeScript
+- Vite for build tooling
+- Tailwind CSS for styling
+- Shadcn/ui components
+- React Query for state management
+- Vercel hosting
+
+## 🌐 Deployment
+
+### Vercel (Recommended)
+
+This project is optimized for Vercel deployment:
+
+1. **Backend**: Deployed as serverless functions
+2. **Frontend**: Deployed as a static site with SPA routing
+3. **Environment Variables**: Configured in Vercel dashboard
+4. **Custom Domains**: Supported through Vercel
+
+### Environment Variables
+
+#### Backend (.env)
+```bash
+# See backend/.env.example for complete list
+NODE_ENV=production
+SUPABASE_URL=your_supabase_url
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+JWT_SECRET=your_jwt_secret
+ZIMTRA_API_KEY=your_zimtra_api_key
+# ... and more
+```
+
+#### Frontend (.env.production)
+```bash
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_API_BASE_URL=https://your-backend.vercel.app/api
+VITE_NODE_ENV=production
+```
 
 ## 📚 API Documentation
 

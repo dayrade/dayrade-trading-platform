@@ -19,8 +19,6 @@ enum TournamentDivision {
 
 // Authentication middleware
 export const authenticateUser = (req: Request, res: Response, next: NextFunction) => {
-  // TODO: Implement JWT token validation
-  // For now, we'll assume user is authenticated and add userId to request
   const authHeader = req.headers.authorization;
   
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -30,18 +28,23 @@ export const authenticateUser = (req: Request, res: Response, next: NextFunction
     });
   }
 
-  // Extract token and validate (placeholder implementation)
+  // Extract token and validate
   const token = authHeader.substring(7);
   
-  // TODO: Verify JWT token and extract user information
-  // For now, we'll mock this
   try {
-    // Mock user extraction from token
+    // Import jwt here to avoid circular dependencies
+    const jwt = require('jsonwebtoken');
+    
+    // Verify JWT token and extract user information
+    const decoded = jwt.verify(token, process.env.JWT_SECRET) as any;
+    
+    // Set user information from JWT payload
     (req as any).user = {
-      id: 'user-123', // This would come from JWT payload
-      email: 'user@example.com',
-      role: 'USER'
+      id: decoded.userId,
+      email: decoded.email,
+      role: decoded.role || 'USER'
     };
+    
     next();
   } catch (error) {
     return res.status(401).json({
@@ -51,19 +54,23 @@ export const authenticateUser = (req: Request, res: Response, next: NextFunction
   }
 };
 
-// Admin authorization middleware
+// Admin authorization middleware (deprecated - use auth.middleware.ts instead)
 export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
   const user = (req as any).user;
   
-  if (!user || user.role !== 'ADMIN') {
+  // Updated to use new role system
+  if (!user || (user.role !== 'super_admin' && user.role !== 'moderator')) {
     return res.status(403).json({
       success: false,
-      error: 'Admin access required'
+      error: 'Admin or moderator access required'
     });
   }
   
   next();
 };
+
+// Note: This middleware is deprecated. Use the new auth middleware:
+// import { requireSuperAdmin, requireModerator } from '../middleware/auth.middleware';
 
 // Simple validation helpers
 const isValidUUID = (uuid: string): boolean => {

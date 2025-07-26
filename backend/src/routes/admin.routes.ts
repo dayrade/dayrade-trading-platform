@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { AdminController } from '../controllers/admin.controller';
+import { AuthService } from '../services/auth.service';
 import { authenticateUser, requireAdmin } from '../middleware/tournament.middleware';
 import { Logger } from '../utils/logger';
 
@@ -22,6 +23,44 @@ router.put('/users/:id', adminController.updateUser.bind(adminController));
 router.delete('/users/:id', adminController.deleteUser.bind(adminController));
 router.post('/users/:id/suspend', adminController.suspendUser.bind(adminController));
 router.post('/users/:id/unsuspend', adminController.unsuspendUser.bind(adminController));
+
+// Admin User Registration
+router.post('/users/register', async (req: Request, res: Response) => {
+  try {
+    const { email, password, firstName, lastName, username, country, timezone } = req.body;
+
+    // Validate required fields
+    if (!email || !password || !firstName || !lastName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email, password, first name, and last name are required'
+      });
+    }
+
+    const result = await AuthService.registerByAdmin({
+      email,
+      password,
+      firstName,
+      lastName,
+      username,
+      country,
+      timezone
+    });
+
+    if (result.success) {
+      return res.status(201).json(result);
+    } else {
+      return res.status(400).json(result);
+    }
+
+  } catch (error) {
+    logger.error('Admin registration error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
 
 // Tournament Management
 router.get('/tournaments', adminController.getTournaments.bind(adminController));
