@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { AuthService } from '../services/auth.service';
 import { authenticateUser } from '../middleware/tournament.middleware';
-import { authenticateToken, requireRole, requireSuperAdmin, getAllowedRoles } from '../middleware/auth.middleware';
+import { authenticateToken, requireRole, requireAdmin, getAllowedRoles } from '../middleware/auth.middleware';
 import { Logger } from '../utils/logger';
 import { DatabaseService } from '../services/database.service';
 
@@ -389,8 +389,8 @@ router.post('/set-password', async (req: Request, res: Response) => {
 // Get allowed roles (public endpoint)
 router.get('/roles', getAllowedRoles);
 
-// Assign role to user (super admin only)
-router.post('/assign-role', authenticateToken, requireSuperAdmin, async (req: AuthenticatedRequest, res: Response) => {
+// Assign role to user (admin only)
+router.post('/assign-role', authenticateToken, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { userId, role } = req.body;
 

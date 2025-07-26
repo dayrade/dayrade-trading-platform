@@ -85,24 +85,19 @@ export const requireRole = (allowedRoles: string | string[]) => {
 };
 
 /**
- * Middleware to require super admin role
+ * Middleware to require admin role (highest privilege)
  */
-export const requireSuperAdmin = requireRole('super_admin');
+export const requireAdmin = requireRole('admin');
 
 /**
  * Middleware to require moderator or higher role
  */
-export const requireModerator = requireRole(['super_admin', 'moderator']);
+export const requireModerator = requireRole(['admin', 'moderator']);
 
 /**
  * Middleware to require any authenticated user (user or higher)
  */
-export const requireUser = requireRole(['super_admin', 'admin', 'moderator', 'user']);
-
-/**
- * Middleware to require admin or higher role
- */
-export const requireAdmin = requireRole(['super_admin', 'admin']);
+export const requireUser = requireRole(['admin', 'moderator', 'user']);
 
 /**
  * Optional authentication middleware - doesn't fail if no token provided

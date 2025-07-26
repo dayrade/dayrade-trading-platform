@@ -44,7 +44,7 @@ export class AuthService {
   private static brevoService = new BrevoService();
   
   // Define allowed roles for the system
-  private static readonly allowedRoles = ['user', 'moderator', 'admin', 'super_admin'];
+  private static readonly allowedRoles = ['user', 'moderator', 'admin'];
 
   /**
    * Register a new user account (self-registration with email confirmation)
